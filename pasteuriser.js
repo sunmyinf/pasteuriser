@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const { LineClient } = require('messaging-api-line');
 
 (async () => {
   // launch browser
@@ -19,14 +20,21 @@ const puppeteer = require('puppeteer');
 		});
   });
 
-  results.forEach(r => {
-    if (r.stock_exists) notify(r);
-  });
+  if (results.some(r => r.stock_exists)) notify(results);
 
   // finish
   await browser.close();
 })();
 
-function notify() {
-  console.log('not implemented');
+// @param results <Array<Object>>
+function notify(results) {
+  const client = LineClient.connect({
+    accessToken: process.env.LINE_BOT_ACCESS_TOKEN,
+    channelSecret: process.env.LINE_BOT_CHANNEL_SECRET,
+  });
+  const text = 'パストリーゼ在庫情報\n' + results.map(r => {
+    if (r.stock_exists) return `・${r.name}: 在庫あるみたいだよ！`;
+  }).filter(t => t).join('\n');
+
+  client.pushText(process.env.LINE_SEND_USER_ID, text);
 }
